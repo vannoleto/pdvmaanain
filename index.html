@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1C1B1A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PDV">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>PDV Lanchonete</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1C1B1A;
+    --surface:#262422;
+    --surface-2:#302D29;
+    --line:#3E3A34;
+    --amber:#E8A33D;
+    --amber-dark:#C4822A;
+    --green:#4C9A6A;
+    --red:#C1503F;
+    --text:#F5F1E8;
+    --text-dim:#B8B2A6;
+  }
+  html{color-scheme: dark;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overscroll-behavior:none;}
+  button, .quick-card, .sugg-item, .cart-item, nav, .prod-row, .pay-grid button{
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
+  h1,h2,h3{font-family:'Oswald',sans-serif; margin:0; letter-spacing:.02em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{display:flex;flex-direction:column;height:100%;}
+
+  /* Top nav */
+  nav{display:flex;align-items:center;gap:6px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
+  nav .brand{font-family:'Oswald';font-size:20px;font-weight:700;color:var(--amber);margin-right:auto;letter-spacing:.03em;}
+  nav button{background:none;border:none;color:var(--text-dim);font-family:'Inter';font-size:14px;font-weight:600;padding:10px 14px;border-radius:8px;cursor:pointer;}
+  nav button.active{background:var(--amber);color:#1C1B1A;}
+
+  main{flex:1;overflow-y:auto;padding:16px;}
+
+  /* Sell screen */
+  .search-wrap{position:relative;margin-bottom:14px;}
+  .search-wrap input{width:100%;padding:16px 16px;font-size:18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:'Inter';}
+  .search-wrap input:focus{outline:2px solid var(--amber);}
+  .suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;overflow:hidden;z-index:20;max-height:340px;overflow-y:auto;}
+  .sugg-item{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .sugg-item:last-child{border-bottom:none;}
+  .sugg-item:active{background:var(--amber);color:#1C1B1A;}
+  .sugg-item .price{font-family:'IBM Plex Mono';color:var(--amber);}
+  .sugg-item:active .price{color:#1C1B1A;}
+
+  .cart-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .cart-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
+  .cart-item .name{flex:1;font-size:15px;}
+  .cart-item .qty-ctrl{display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;padding:4px;}
+  .cart-item .qty-ctrl button{width:30px;height:30px;border:none;border-radius:6px;background:var(--line);color:var(--text);font-size:16px;cursor:pointer;}
+  .cart-item .qty-ctrl span{min-width:20px;text-align:center;font-family:'IBM Plex Mono';}
+  .cart-item .sub{font-family:'IBM Plex Mono';color:var(--amber);min-width:70px;text-align:right;}
+  .cart-item .rm{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px 8px;}
+  .empty{color:var(--text-dim);text-align:center;padding:40px 10px;font-size:14px;}
+
+  .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .quick-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 12px;text-align:left;cursor:pointer;min-height:76px;display:flex;flex-direction:column;justify-content:center;gap:4px;color:var(--text);appearance:none;font-family:inherit;forced-color-adjust:none;}
+  .quick-card:active{background:var(--amber);border-color:var(--amber);}
+  .quick-card:active .qname{color:#1C1B1A;}
+  .quick-card:active .qprice{color:#1C1B1A;}
+  .quick-card .qname{font-family:'Oswald';font-size:16px;font-weight:600;color:var(--text);}
+  .quick-card .qprice{font-family:'IBM Plex Mono';color:var(--amber);font-size:14px;}
+  .section-label{color:var(--text-dim);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:4px 0 10px;}
+
+  .sell-layout{display:flex;gap:16px;align-items:flex-start;}
+  .sell-left{flex:1.3;min-width:0;}
+  .sell-right{flex:1;min-width:280px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;position:sticky;top:16px;max-height:calc(100vh - 32px);}
+  .sell-right .cart-list{flex:1;overflow-y:auto;margin-bottom:14px;}
+  .sell-right .total-bar{position:static;}
+  .quick-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+  @media (max-width:760px){
+    .sell-layout{flex-direction:column;}
+    .sell-right{position:static;max-height:none;}
+  }
+
+  .total-bar{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;}
+  .total-bar .label{color:var(--text-dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em;}
+  .total-bar .amount{font-family:'Oswald';font-size:30px;color:var(--amber);}
+  .btn-primary{background:var(--amber);color:#1C1B1A;border:none;padding:16px 22px;border-radius:12px;font-family:'Oswald';font-size:16px;font-weight:600;cursor:pointer;}
+  .btn-primary:disabled{opacity:.4;}
+
+  /* Products screen */
+  .prod-form{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .prod-form input{flex:1;min-width:140px;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:'Inter';font-size:15px;}
+  .prod-form button{background:var(--amber);border:none;color:#1C1B1A;padding:14px 20px;border-radius:10px;font-family:'Oswald';font-weight:600;cursor:pointer;}
+  .prod-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .prod-row .name{flex:1;}
+  .prod-row .price{font-family:'IBM Plex Mono';color:var(--amber);}
+  .prod-row button{background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;}
+
+  /* Settings */
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+  .field input{width:100%;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:'IBM Plex Mono';font-size:14px;}
+  .warn{background:#3A2E1D;border:1px solid var(--amber-dark);color:var(--amber);padding:12px 14px;border-radius:10px;font-size:13px;margin-bottom:16px;line-height:1.5;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+  .sheet{background:var(--surface);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:22px;max-height:88vh;overflow-y:auto;}
+  .sheet h2{margin-bottom:16px;}
+  .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .pay-grid button{padding:20px 10px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-family:'Oswald';font-size:15px;font-weight:600;cursor:pointer;}
+  .pay-grid button:active{border-color:var(--amber);}
+  .close-x{background:none;border:none;color:var(--text-dim);font-size:22px;float:right;cursor:pointer;}
+
+  .qr-box{background:#fff;padding:16px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:14px 0;}
+  .qr-box img{width:220px;height:220px;}
+  .pix-status{text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:10px;}
+  .pix-status.ok{color:var(--green);font-weight:600;}
+
+  /* Receipt */
+  .receipt{background:#fff;color:#111;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:18px 16px;border-radius:6px;line-height:1.6;position:relative;}
+  .receipt::after{content:"";display:block;height:14px;margin-top:10px;background:repeating-linear-gradient(-45deg,#fff 0 6px,var(--surface) 6px 12px);}
+  .receipt hr{border:none;border-top:1px dashed #999;margin:8px 0;}
+  .receipt .rline{display:flex;justify-content:space-between;}
+  .receipt .rtitle{text-align:center;font-weight:700;font-size:15px;margin-bottom:4px;}
+  .receipt .rcenter{text-align:center;}
+
+  .actions-col{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .actions-col button{padding:15px;border-radius:12px;border:none;font-family:'Oswald';font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-green{background:var(--green);color:#0E1F15;}
+  .btn-outline{background:none;border:1px solid var(--line) !important;color:var(--text);}
+  .btn-ghost{background:var(--surface-2);color:var(--text-dim);}
+
+  .card-msg{text-align:center;padding:30px 10px;}
+  .card-msg .icon{font-size:48px;margin-bottom:12px;}
+
+  #printArea{display:none;}
+  @media print{
+    body > *:not(#printArea){display:none !important;}
+    #printArea{display:block !important; font-family:'IBM Plex Mono',monospace; color:#111; font-size:13px; width:280px; margin:0 auto;}
+    #printArea .rline{display:flex;justify-content:space-between;}
+    #printArea hr{border:none;border-top:1px dashed #999;}
+    #printArea .rtitle{text-align:center;font-weight:bold;}
+    #printArea .rcenter{text-align:center;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <nav>
+    <div class="brand">🥟 PDV</div>
+    <button id="navSell" class="active">Vender</button>
+    <button id="navProd">Produtos</button>
+    <button id="navReport">Relatório</button>
+    <button id="navSettings">Ajustes</button>
+  </nav>
+  <main id="main"></main>
+  <div id="printArea"></div>
+</div>
+
+<script>
+const storage = window.storage; // não é mais usado para salvar dados — mantido apenas por compatibilidade
+let products = [];
+let cart = [];
+let sales = [];
+let events = []; // {id, name, startedAt, endedAt|null}
+let settings = { storeName:'Minha Lanchonete', payerEmail:'cliente@lanchonete.com' };
+let pixPollTimer = null;
+
+// ---------- Persistence ----------
+const LS_PREFIX = 'pdv_';
+async function loadData(){
+  try{ const v = localStorage.getItem(LS_PREFIX+'products'); products = v ? JSON.parse(v) : []; }catch(e){ products = []; }
+  try{ const v = localStorage.getItem(LS_PREFIX+'settings'); settings = v ? {...settings, ...JSON.parse(v)} : settings; }catch(e){}
+  try{ const v = localStorage.getItem(LS_PREFIX+'sales'); sales = v ? JSON.parse(v) : []; }catch(e){ sales = []; }
+  try{ const v = localStorage.getItem(LS_PREFIX+'events'); events = v ? JSON.parse(v) : []; }catch(e){ events = []; }
+}
+function saveProducts(){ try{ localStorage.setItem(LS_PREFIX+'products', JSON.stringify(products)); }catch(e){ console.error(e); } }
+function saveSettings(){ try{ localStorage.setItem(LS_PREFIX+'settings', JSON.stringify(settings)); }catch(e){ console.error(e); } }
+function saveSales(){ try{ localStorage.setItem(LS_PREFIX+'sales', JSON.stringify(sales)); }catch(e){ console.error(e); } }
+function saveEvents(){ try{ localStorage.setItem(LS_PREFIX+'events', JSON.stringify(events)); }catch(e){ console.error(e); } }
+
+function currentEvent(){ return events.find(e=>!e.endedAt) || null; }
+
+// ---------- Nav ----------
+const views = { sell: renderSell, prod: renderProducts, settings: renderSettings };
+function setActiveNav(id){
+  ['navSell','navProd','navReport','navSettings'].forEach(n=>document.getElementById(n).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+document.getElementById('navSell').onclick=()=>{setActiveNav('navSell');renderSell();};
+document.getElementById('navProd').onclick=()=>{setActiveNav('navProd');renderProducts();};
+document.getElementById('navReport').onclick=()=>{setActiveNav('navReport');renderReport();};
+document.getElementById('navSettings').onclick=()=>{setActiveNav('navSettings');renderSettings();};
+
+function fmt(n){ return 'R$ ' + n.toFixed(2).replace('.',','); }
+
+// ---------- SELL SCREEN ----------
+function renderSell(){
+  const main = document.getElementById('main');
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  main.innerHTML = `
+    <div class="sell-layout">
+      <div class="sell-left">
+        <div class="search-wrap">
+          <input id="searchBox" placeholder="Digite o nome do produto..." autocomplete="off">
+          <div id="suggBox"></div>
+        </div>
+        <div id="quickGrid"></div>
+      </div>
+      <div class="sell-right">
+        <div class="section-label">Carrinho</div>
+        <div class="cart-list" id="cartList"></div>
+        <div class="total-bar">
+          <div>
+            <div class="label">Total</div>
+            <div class="amount mono">${fmt(total)}</div>
+          </div>
+          <button class="btn-primary" id="finishBtn" ${cart.length===0?'disabled':''}>Finalizar venda</button>
+        </div>
+      </div>
+    </div>
+  `;
+  renderCart();
+  renderQuickGrid();
+  const searchBox = document.getElementById('searchBox');
+  searchBox.addEventListener('input', ()=>renderSuggestions(searchBox.value));
+  document.getElementById('finishBtn').onclick = openPaymentSheet;
+}
+
+function renderQuickGrid(){
+  const box = document.getElementById('quickGrid');
+  if(products.length===0){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="section-label">Produtos</div>
+    <div class="quick-grid">${products.map(p=>`
+      <button class="quick-card" data-qid="${p.id}">
+        <span class="qname">${p.name}</span>
+        <span class="qprice">${fmt(p.price)}</span>
+      </button>`).join('')}</div>`;
+  box.querySelectorAll('[data-qid]').forEach(el=>{
+    el.onclick = ()=>{
+      const p = products.find(x=>x.id===el.dataset.qid);
+      addToCart(p);
+    };
+  });
+}
+
+function renderSuggestions(query){
+  const box = document.getElementById('suggBox');
+  if(!query.trim()){ box.innerHTML=''; return; }
+  const q = query.toLowerCase();
+  const matches = products.filter(p=>p.name.toLowerCase().includes(q)).slice(0,8);
+  if(matches.length===0){ box.innerHTML = `<div class="suggestions"><div class="sugg-item" style="cursor:default;color:var(--text-dim)">Nenhum produto encontrado</div></div>`; return; }
+  box.innerHTML = `<div class="suggestions">${matches.map(p=>`
+    <div class="sugg-item" data-id="${p.id}">
+      <span>${p.name}</span><span class="price">${fmt(p.price)}</span>
+    </div>`).join('')}</div>`;
+  box.querySelectorAll('.sugg-item[data-id]').forEach(el=>{
+    el.onclick = ()=>{
+      const p = products.find(x=>x.id===el.dataset.id);
+      addToCart(p);
+      document.getElementById('searchBox').value='';
+      document.getElementById('suggBox').innerHTML='';
+      document.getElementById('searchBox').focus();
+    };
+  });
+}
+
+function addToCart(p){
+  const existing = cart.find(i=>i.productId===p.id);
+  if(existing) existing.qty++;
+  else cart.push({productId:p.id, name:p.name, price:p.price, qty:1});
+  renderSell();
+}
+function changeQty(id, delta){
+  const item = cart.find(i=>i.productId===id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty<=0) cart = cart.filter(i=>i.productId!==id);
+  renderSell();
+}
+function removeItem(id){ cart = cart.filter(i=>i.productId!==id); renderSell(); }
+
+function renderCart(){
+  const list = document.getElementById('cartList');
+  if(cart.length===0){ list.innerHTML = `<div class="empty">Nenhum item ainda.<br>Busque um produto acima para adicionar.</div>`; return; }
+  list.innerHTML = cart.map(i=>`
+    <div class="cart-item">
+      <span class="name">${i.name}</span>
+      <div class="qty-ctrl">
+        <button data-a="-" data-id="${i.productId}">−</button>
+        <span>${i.qty}</span>
+        <button data-a="+" data-id="${i.productId}">+</button>
+      </div>
+      <span class="sub">${fmt(i.price*i.qty)}</span>
+      <button class="rm" data-rm="${i.productId}">✕</button>
+    </div>`).join('');
+  list.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>changeQty(b.dataset.id, b.dataset.a==='+'?1:-1));
+  list.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>removeItem(b.dataset.rm));
+}
+
+// ---------- PRODUCTS SCREEN ----------
+function renderProducts(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <h2 style="margin-bottom:14px;">Cadastrar produto</h2>
+    <div class="prod-form">
+      <input id="pName" placeholder="Nome do produto">
+      <input id="pPrice" placeholder="Preço (ex: 10,00)" inputmode="decimal">
+      <button id="pAdd">Adicionar</button>
+    </div>
+    <h2 style="margin-bottom:10px;">Meus produtos</h2>
+    <div id="pList"></div>
+  `;
+  renderProdList();
+  document.getElementById('pAdd').onclick = ()=>{
+    const name = document.getElementById('pName').value.trim();
+    const priceRaw = document.getElementById('pPrice').value.trim().replace(',','.');
+    const price = parseFloat(priceRaw);
+    if(!name || isNaN(price) || price<=0){ alert('Preencha nome e preço válidos.'); return; }
+    products.push({id: (crypto.randomUUID ? crypto.randomUUID() : 'p_'+Date.now()+'_'+Math.random().toString(36).slice(2)), name, price});
+    renderProducts(); // atualiza a tela imediatamente
+    saveProducts(); // salva em segundo plano, sem travar a interface
+  };
+}
+function renderProdList(){
+  const box = document.getElementById('pList');
+  if(products.length===0){ box.innerHTML = `<div class="empty">Nenhum produto cadastrado ainda.</div>`; return; }
+  box.innerHTML = products.map(p=>`
+    <div class="prod-row">
+      <span class="name">${p.name}</span>
+      <span class="price">${fmt(p.price)}</span>
+      <button data-del="${p.id}">✕</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    products = products.filter(p=>p.id!==b.dataset.del);
+    renderProducts(); // atualiza a tela imediatamente
+    saveProducts(); // salva em segundo plano
+  });
+}
+
+// ---------- SETTINGS SCREEN ----------
+function renderSettings(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <h2 style="margin-bottom:14px;">Ajustes</h2>
+    <div class="warn">🔒 O Pix agora funciona por uma função de servidor segura (Netlify Functions) — o Access Token do Mercado Pago fica configurado direto no painel do Netlify, nunca dentro do app. Veja as instruções que te passei para configurar a variável <b>MP_ACCESS_TOKEN</b> lá.</div>
+    <div class="field">
+      <label>Nome da lanchonete (aparece no cupom)</label>
+      <input id="sStore" value="${settings.storeName}">
+    </div>
+    <div class="field">
+      <label>E-mail do pagador (exigido pela API do Pix)</label>
+      <input id="sEmail" value="${settings.payerEmail}">
+    </div>
+    <button class="btn-primary" id="sSave">Salvar</button>
+
+    <div class="section-label" style="margin-top:26px;">Backup dos dados</div>
+    <div class="warn">Os dados ficam salvos neste navegador/tablet. Exporte um backup de vez em quando e guarde num lugar seguro (WhatsApp, e-mail, Drive) — assim você não perde nada mesmo se trocar de aparelho ou limpar os dados do navegador.</div>
+    <div class="actions-col" style="margin-top:0;">
+      <button class="btn-outline" id="exportBtn">Exportar backup (.json)</button>
+      <button class="btn-ghost" id="importBtn">Importar backup</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+  `;
+  document.getElementById('exportBtn').onclick = exportBackup;
+  document.getElementById('importBtn').onclick = ()=>document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = importBackup;
+  document.getElementById('sSave').onclick = async ()=>{
+    settings.storeName = document.getElementById('sStore').value.trim() || 'Minha Lanchonete';
+    settings.payerEmail = document.getElementById('sEmail').value.trim();
+    saveSettings();
+    alert('Ajustes salvos.');
+  };
+}
+
+// ---------- PAYMENT SHEET ----------
+function openPaymentSheet(){
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <span class="close-x" id="closeSheet">✕</span>
+      <h2>Forma de pagamento</h2>
+      <div class="mono" style="color:var(--amber);font-size:22px;margin-bottom:16px;">${fmt(total)}</div>
+      <div class="pay-grid">
+        <button data-m="dinheiro">💵 Dinheiro</button>
+        <button data-m="pix">🔳 Pix</button>
+        <button data-m="debito">💳 Débito</button>
+        <button data-m="credito">💳 Crédito</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#closeSheet').onclick = ()=>overlay.remove();
+  overlay.querySelectorAll('[data-m]').forEach(b=>{
+    b.onclick = ()=>{
+      const method = b.dataset.m;
+      overlay.remove();
+      if(method==='dinheiro') openCashSheet(total);
+      else if(method==='pix') openPixSheet(total);
+      else openCardSheet(total, method);
+    };
+  });
+}
+
+function openCashSheet(total){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <span class="close-x" id="closeSheet">✕</span>
+      <h2>Pagamento em dinheiro</h2>
+      <div class="mono" style="color:var(--text-dim);margin-bottom:10px;">Total: <b style="color:var(--amber)">${fmt(total)}</b></div>
+      <div class="field">
+        <label>Valor recebido do cliente</label>
+        <input id="cashReceived" inputmode="decimal" placeholder="Ex: 20,00">
+      </div>
+      <div id="trocoBox" style="font-family:'Oswald';font-size:20px;margin-bottom:10px;"></div>
+      <div class="actions-col">
+        <button class="btn-green" id="confirmCash" disabled>Confirmar e emitir cupom</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#closeSheet').onclick = ()=>overlay.remove();
+  const input = overlay.querySelector('#cashReceived');
+  const trocoBox = overlay.querySelector('#trocoBox');
+  const confirmBtn = overlay.querySelector('#confirmCash');
+  input.addEventListener('input', ()=>{
+    const received = parseFloat(input.value.replace(',','.'));
+    if(isNaN(received) || received < total){
+      trocoBox.innerHTML = isNaN(received)? '' : `<span style="color:var(--red)">Valor insuficiente</span>`;
+      confirmBtn.disabled = true;
+    } else {
+      const troco = received - total;
+      trocoBox.innerHTML = `Troco: <span style="color:var(--green)">${fmt(troco)}</span>`;
+      confirmBtn.disabled = false;
+      confirmBtn.onclick = ()=>{
+        overlay.remove();
+        finalizeSale('Dinheiro', {recebido: received, troco});
+      };
+    }
+  });
+}
+
+function openCardSheet(total, method){
+  const label = method==='debito' ? 'Débito' : 'Crédito';
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <span class="close-x" id="closeSheet">✕</span>
+      <div class="card-msg">
+        <div class="icon">💳</div>
+        <h2>Passe o cartão na maquininha</h2>
+        <p class="mono" style="color:var(--amber);font-size:20px;margin-top:8px;">${fmt(total)} · ${label}</p>
+      </div>
+      <div class="actions-col">
+        <button class="btn-green" id="confirmCard">Pagamento aprovado</button>
+        <button class="btn-outline" id="cancelCard">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#closeSheet').onclick = ()=>overlay.remove();
+  overlay.querySelector('#cancelCard').onclick = ()=>overlay.remove();
+  overlay.querySelector('#confirmCard').onclick = ()=>{
+    overlay.remove();
+    finalizeSale(label, {});
+  };
+}
+
+// ---------- PIX ----------
+function openPixSheet(total){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <span class="close-x" id="closeSheet">✕</span>
+      <h2>Pagamento via Pix</h2>
+      <div class="mono" style="color:var(--text-dim);margin-bottom:6px;">Total: <b style="color:var(--amber)">${fmt(total)}</b></div>
+      <div id="pixContent"><div class="pix-status">Gerando QR Code...</div></div>
+      <div class="actions-col">
+        <button class="btn-outline" id="cancelPix">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#closeSheet').onclick = ()=>{ stopPixPolling(); overlay.remove(); };
+  overlay.querySelector('#cancelPix').onclick = ()=>{ stopPixPolling(); overlay.remove(); };
+  generatePix(total, overlay);
+}
+
+async function generatePix(total, overlay){
+  const content = overlay.querySelector('#pixContent');
+  try{
+    const resp = await fetch('/.netlify/functions/create-pix', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        amount: Number(total.toFixed(2)),
+        description: settings.storeName + ' - venda',
+        payerEmail: settings.payerEmail || 'cliente@lanchonete.com'
+      })
+    });
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || 'Falha ao gerar Pix');
+    if(!data.qrCodeBase64) throw new Error('QR Code não retornado');
+    content.innerHTML = `
+      <div class="pix-status" id="pixStatusText">Aguardando pagamento do cliente...</div>
+      <div class="qr-box"><img src="data:image/png;base64,${data.qrCodeBase64}"></div>
+    `;
+    const paymentId = data.paymentId;
+    pixPollTimer = setInterval(async ()=>{
+      try{
+        const s = await fetch('/.netlify/functions/check-pix?id='+encodeURIComponent(paymentId));
+        const sd = await s.json();
+        if(sd.status === 'approved'){
+          stopPixPolling();
+          document.getElementById('pixStatusText').textContent = 'Pagamento aprovado!';
+          document.getElementById('pixStatusText').classList.add('ok');
+          setTimeout(()=>{ overlay.remove(); finalizeSale('Pix', {paymentId}); }, 800);
+        }
+      }catch(e){}
+    }, 3000);
+  }catch(err){
+    content.innerHTML = `
+      <div class="pix-status" style="color:var(--red)">Não foi possível gerar o Pix real (${err.message}).<br>Isso é esperado se você estiver testando localmente (fora do Netlify) ou se o MP_ACCESS_TOKEN ainda não foi configurado nas variáveis de ambiente do site.</div>
+      <div class="qr-box"><div style="width:220px;height:220px;background:repeating-linear-gradient(45deg,#000 0 8px,#fff 8px 16px);"></div></div>
+      <div class="actions-col"><button class="btn-green" id="simulateOk">Simular pagamento aprovado (modo teste)</button></div>
+    `;
+    overlay.querySelector('#simulateOk').onclick = ()=>{ overlay.remove(); finalizeSale('Pix', {simulado:true}); };
+  }
+}
+function stopPixPolling(){ if(pixPollTimer){ clearInterval(pixPollTimer); pixPollTimer=null; } }
+
+// ---------- FINALIZE + RECEIPT ----------
+function finalizeSale(method, extra){
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const now = new Date();
+  let ev = currentEvent();
+  if(!ev){
+    ev = { id:(crypto.randomUUID?crypto.randomUUID():'e_'+Date.now()), name:'Venda de '+now.toLocaleDateString('pt-BR'), startedAt: now.toISOString(), endedAt:null };
+    events.push(ev);
+    saveEvents();
+  }
+  sales.push({
+    id: (crypto.randomUUID ? crypto.randomUUID() : 'v_'+Date.now()),
+    eventId: ev.id,
+    timestamp: now.toISOString(),
+    items: cart.map(i=>({name:i.name, qty:i.qty, price:i.price})),
+    total, method
+  });
+  saveSales(); // grava em segundo plano, sem travar a tela do cupom
+  const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const itemsHtml = cart.map(i=>`
+    <div class="rline"><span>${i.qty}x ${i.name}</span><span>${fmt(i.price*i.qty)}</span></div>
+  `).join('');
+  let extraLine = '';
+  if(method==='Dinheiro'){
+    extraLine = `<div class="rline"><span>Recebido</span><span>${fmt(extra.recebido)}</span></div><div class="rline"><span>Troco</span><span>${fmt(extra.troco)}</span></div>`;
+  }
+  const receiptHtml = `
+    <div class="rtitle">${settings.storeName}</div>
+    <div class="rcenter" style="margin-bottom:8px;color:#555;">${dateStr}</div>
+    <hr>
+    ${itemsHtml}
+    <hr>
+    <div class="rline" style="font-weight:700;"><span>TOTAL</span><span>${fmt(total)}</span></div>
+    <div class="rline"><span>Pagamento</span><span>${method}</span></div>
+    ${extraLine}
+    <hr>
+    <div class="rcenter">Apresente este cupom para retirar seu pedido</div>
+  `;
+  const plainText = buildPlainReceipt(method, extra, total, dateStr);
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <h2 style="margin-bottom:14px;">Cupom da venda</h2>
+      <div class="receipt">${receiptHtml}</div>
+      <div class="actions-col">
+        <button class="btn-green" id="printRawbt">Imprimir (RawBT)</button>
+        <button class="btn-outline" id="printSystem">Imprimir (impressora do sistema)</button>
+        <button class="btn-ghost" id="newSale">Nova venda</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#newSale').onclick = ()=>{ overlay.remove(); cart=[]; renderSell(); };
+  overlay.querySelector('#printRawbt').onclick = ()=>printViaRawBT(plainText);
+  overlay.querySelector('#printSystem').onclick = ()=>printViaSystemDialog(receiptHtml);
+}
+
+function buildPlainReceipt(method, extra, total, dateStr){
+  let lines = [];
+  lines.push(settings.storeName);
+  lines.push(dateStr);
+  lines.push('--------------------------------');
+  cart.forEach(i=> lines.push(`${i.qty}x ${i.name}  ${fmt(i.price*i.qty)}`));
+  lines.push('--------------------------------');
+  lines.push(`TOTAL: ${fmt(total)}`);
+  lines.push(`Pagamento: ${method}`);
+  if(method==='Dinheiro'){
+    lines.push(`Recebido: ${fmt(extra.recebido)}`);
+    lines.push(`Troco: ${fmt(extra.troco)}`);
+  }
+  lines.push('--------------------------------');
+  lines.push('Apresente este cupom para retirar seu pedido');
+  lines.push('\n\n\n');
+  return lines.join('\n');
+}
+
+// RawBT app: intent that most Bluetooth thermal printer setups on Android use
+function printViaRawBT(text){
+  const encoded = encodeURIComponent(text);
+  const url = 'rawbt:'+encoded;
+  window.location.href = url;
+}
+// Fallback: Android system print dialog (works if the printer has a native print service installed)
+// Uses the current page instead of window.open, since pop-ups are commonly blocked on mobile browsers
+function printViaSystemDialog(receiptHtml){
+  const area = document.getElementById('printArea');
+  area.innerHTML = receiptHtml;
+  try{
+    window.print();
+  }catch(e){
+    alert('Não foi possível abrir a impressão do sistema. Tente o botão RawBT.');
+  }
+}
+
+// ---------- REPORT SCREEN ----------
+function renderReport(){
+  const main = document.getElementById('main');
+  const ev = currentEvent();
+  const pastEvents = events.filter(e=>e.endedAt).sort((a,b)=> new Date(b.endedAt)-new Date(a.endedAt));
+  const grandTotal = sales.reduce((s,v)=>s+v.total,0);
+  const methodOrderAll = ['Dinheiro','Pix','Débito','Crédito'];
+  const byMethodAll = {}; methodOrderAll.forEach(m=>byMethodAll[m]=0);
+  sales.forEach(v=>{ byMethodAll[v.method] = (byMethodAll[v.method]||0) + v.total; });
+
+  main.innerHTML = `
+    <div class="total-bar" style="margin-bottom:10px;">
+      <div>
+        <div class="label">Total arrecadado (geral)</div>
+        <div class="amount mono">${fmt(grandTotal)}</div>
+      </div>
+    </div>
+    <button class="btn-outline" id="printAllBtn" style="width:100%;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:12px;border-radius:10px;font-family:'Oswald';margin-bottom:18px;">Imprimir resumo geral (todas as vendas)</button>
+    <div id="currentEventBox"></div>
+    <div class="section-label" style="margin-top:22px;">Eventos encerrados</div>
+    <div class="cart-list" id="pastEventsBox"></div>
+  `;
+  document.getElementById('printAllBtn').onclick = ()=>{
+    const text = buildReportPlainText('Resumo geral', methodOrderAll, byMethodAll, grandTotal, sales.length);
+    printViaRawBT(text);
+  };
+
+  const box = document.getElementById('currentEventBox');
+  if(!ev){
+    box.innerHTML = `
+      <div class="section-label">Nenhum evento em aberto</div>
+      <div class="field">
+        <input id="newEventName" placeholder="Nome do evento (ex: Venda de pastéis - Agosto)">
+      </div>
+      <button class="btn-primary" id="startEventBtn">Iniciar evento de venda</button>
+    `;
+    document.getElementById('startEventBtn').onclick = async ()=>{
+      const name = document.getElementById('newEventName').value.trim() || ('Venda de '+new Date().toLocaleDateString('pt-BR'));
+      events.push({ id:(crypto.randomUUID?crypto.randomUUID():'e_'+Date.now()), name, startedAt: new Date().toISOString(), endedAt:null });
+      renderReport();
+      saveEvents();
+    };
+  } else {
+    const evSales = sales.filter(s=>s.eventId===ev.id).sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+    const evTotal = evSales.reduce((s,v)=>s+v.total,0);
+    const methodOrder = ['Dinheiro','Pix','Débito','Crédito'];
+    const byMethod = {}; methodOrder.forEach(m=>byMethod[m]=0);
+    evSales.forEach(v=>{ byMethod[v.method] = (byMethod[v.method]||0) + v.total; });
+    box.innerHTML = `
+      <div class="section-label">Evento em aberto</div>
+      <h2 style="margin-bottom:10px;">${ev.name}</h2>
+      <div class="total-bar" style="margin-bottom:14px;">
+        <div>
+          <div class="label">Arrecadado neste evento</div>
+          <div class="amount mono">${fmt(evTotal)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label">Vendas</div>
+          <div class="amount mono" style="font-size:22px;">${evSales.length}</div>
+        </div>
+      </div>
+      <div class="section-label">Por forma de pagamento</div>
+      <div class="cart-list" style="margin-bottom:14px;">
+        ${methodOrder.map(m=>`<div class="cart-item"><span class="name">${m}</span><span class="sub">${fmt(byMethod[m])}</span></div>`).join('')}
+      </div>
+      ${evSales.length ? `
+        <div class="section-label">Vendas deste evento</div>
+        <div class="cart-list" style="margin-bottom:14px;">
+          ${evSales.map(v=>`
+            <div class="cart-item" style="align-items:flex-start;">
+              <div style="flex:1;">
+                <div>${new Date(v.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${v.method}</div>
+                <div style="color:var(--text-dim);font-size:12px;margin-top:2px;">${v.items.map(i=>i.qty+'x '+i.name).join(', ')}</div>
+              </div>
+              <span class="sub">${fmt(v.total)}</span>
+            </div>`).join('')}
+        </div>` : `<div class="empty">Nenhuma venda registrada ainda neste evento.</div>`}
+      <div class="actions-col" style="margin-top:0;">
+        <button class="btn-outline" id="printReportBtn">Imprimir relatório (RawBT)</button>
+        <button class="btn-ghost" id="printReportSysBtn">Imprimir relatório (sistema)</button>
+        <button class="btn-primary" id="endEventBtn">Encerrar este evento</button>
+      </div>
+    `;
+    document.getElementById('endEventBtn').onclick = ()=>{
+      openConfirmSheet('Encerrar "'+ev.name+'"? O total arrecadado ficará guardado no histórico.', ()=>{
+        ev.endedAt = new Date().toISOString();
+        renderReport();
+        saveEvents();
+      });
+    };
+    document.getElementById('printReportBtn').onclick = ()=>printViaRawBT(buildReportPlainText(ev.name, methodOrder, byMethod, evTotal, evSales.length));
+    document.getElementById('printReportSysBtn').onclick = ()=>printViaSystemDialog(buildReportHtml(ev.name, methodOrder, byMethod, evTotal, evSales.length));
+  }
+
+  const pastBox = document.getElementById('pastEventsBox');
+  if(pastEvents.length===0){
+    pastBox.innerHTML = `<div class="empty">Nenhum evento encerrado ainda.</div>`;
+  } else {
+    pastBox.innerHTML = pastEvents.map(e=>{
+      const total = sales.filter(s=>s.eventId===e.id).reduce((s,v)=>s+v.total,0);
+      return `<div class="cart-item">
+        <div style="flex:1;">
+          <div>${e.name}</div>
+          <div style="color:var(--text-dim);font-size:12px;">${new Date(e.endedAt).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <span class="sub">${fmt(total)}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function buildReportPlainText(title, methodOrder, byMethod, total, count){
+  const now = new Date();
+  let lines = [];
+  lines.push(settings.storeName);
+  lines.push('RELATORIO DE VENDAS');
+  lines.push(title);
+  lines.push(now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  lines.push('--------------------------------');
+  methodOrder.forEach(m=> lines.push(`${m.padEnd(12,' ')} ${fmt(byMethod[m]).padStart(12,' ')}`));
+  lines.push('--------------------------------');
+  lines.push(`TOTAL GERAL: ${fmt(total)}`);
+  lines.push(`Vendas: ${count}`);
+  lines.push('--------------------------------');
+  lines.push('\n\n\n');
+  return lines.join('\n');
+}
+function buildReportHtml(title, methodOrder, byMethod, total, count){
+  const now = new Date();
+  return `
+    <div class="rtitle">${settings.storeName}</div>
+    <div class="rcenter" style="font-weight:600;">RELATÓRIO DE VENDAS</div>
+    <div class="rcenter">${title}</div>
+    <div class="rcenter" style="margin-bottom:8px;color:#555;">${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    <hr>
+    ${methodOrder.map(m=>`<div class="rline"><span>${m}</span><span>${fmt(byMethod[m])}</span></div>`).join('')}
+    <hr>
+    <div class="rline" style="font-weight:700;"><span>TOTAL GERAL</span><span>${fmt(total)}</span></div>
+    <div class="rline"><span>Vendas</span><span>${count}</span></div>
+  `;
+}
+
+function openConfirmSheet(message, onConfirm){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="sheet">
+      <h2 style="margin-bottom:14px;">Confirmar</h2>
+      <p style="color:var(--text-dim);margin-bottom:20px;">${message}</p>
+      <div class="actions-col" style="margin-top:0;">
+        <button class="btn-green" id="confirmYes">Sim, confirmar</button>
+        <button class="btn-outline" id="confirmNo">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#confirmNo').onclick = ()=>overlay.remove();
+  overlay.querySelector('#confirmYes').onclick = ()=>{ overlay.remove(); onConfirm(); };
+}
+
+function exportBackup(){
+  const data = { products, sales, events, settings, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'backup-pdv-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function importBackup(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      openConfirmSheet('Importar este backup vai substituir todos os dados atuais (produtos, vendas e eventos). Continuar?', ()=>{
+        products = data.products || [];
+        sales = data.sales || [];
+        events = data.events || [];
+        settings = { ...settings, ...(data.settings||{}) };
+        saveProducts(); saveSales(); saveEvents(); saveSettings();
+        alert('Backup importado com sucesso.');
+        renderSettings();
+      });
+    }catch(err){
+      alert('Arquivo inválido. Selecione um backup exportado por este app.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- INIT ----------
+loadData().then(renderSell);
+
+// ---------- PWA: mantém a tela acesa enquanto o app estiver aberto ----------
+let wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  }catch(err){ console.error('Wake Lock falhou:', err); }
+}
+requestWakeLock();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') requestWakeLock();
+});
+
+// ---------- PWA: registra o service worker para funcionar offline ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:', err));
+  });
+}
+</script>
+</body>
+</html>
