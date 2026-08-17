@@ -514,17 +514,33 @@ async function generatePix(total, overlay){
       <div class="qr-box"><img src="data:image/png;base64,${data.qrCodeBase64}"></div>
     `;
     const paymentId = data.paymentId;
-    pixPollTimer = setInterval(async ()=>{
+    pixPollTimer = setInterval(async () => {
       try{
-        const s = await fetch('/.netlify/functions/check-pix?id='+encodeURIComponent(paymentId));
-        const sd = await s.json();
-        if(sd.status === 'approved'){
+        const s = await fetch('/.netlify/functions/check-pix?id=' + encodeURIComponent(paymentId));
+        let sd = null;
+        try{ sd = await s.json(); } catch(e){ sd = null; }
+
+        if(!s.ok){
+          const txt = document.getElementById('pixStatusText');
+          if(txt) txt.textContent = 'Erro ao consultar status (ver logs).';
+          return;
+        }
+
+        const status = sd && sd.status ? String(sd.status).toLowerCase() : null;
+        if(status === 'approved' || status === 'paid' || status === 'succeeded'){
           stopPixPolling();
-          document.getElementById('pixStatusText').textContent = 'Pagamento aprovado!';
-          document.getElementById('pixStatusText').classList.add('ok');
+          const txt = document.getElementById('pixStatusText');
+          if(txt){
+            txt.textContent = 'Pagamento aprovado!';
+            txt.classList.add('ok');
+          }
+          try{ alert('Pagamento aprovado!'); }catch(e){}
           setTimeout(()=>{ overlay.remove(); finalizeSale('Pix', {paymentId}); }, 800);
         }
-      }catch(e){}
+      }catch(err){
+        const txt = document.getElementById('pixStatusText');
+        if(txt) txt.textContent = 'Erro temporário ao checar pagamento.';
+      }
     }, 3000);
   }catch(err){
     content.innerHTML = `
