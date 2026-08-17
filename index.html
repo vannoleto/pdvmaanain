@@ -512,6 +512,7 @@ async function generatePix(total, overlay){
     content.innerHTML = `
       <div class="pix-status" id="pixStatusText">Aguardando pagamento do cliente...</div>
       <div class="qr-box"><img src="data:image/png;base64,${data.qrCodeBase64}"></div>
+      <div id="pixDebug" style="color:var(--text-dim);font-size:12px;white-space:pre-wrap;margin-top:8px;"></div>
     `;
     const paymentId = data.paymentId;
     pixPollTimer = setInterval(async () => {
@@ -529,6 +530,7 @@ async function generatePix(total, overlay){
         }
 
         const status = sd && sd.status ? String(sd.status).toLowerCase() : null;
+        try{ updateDebug(sd); }catch(e){}
         if(status === 'approved' || status === 'paid' || status === 'succeeded'){
           stopPixPolling();
           const txt = document.getElementById('pixStatusText');
@@ -542,6 +544,7 @@ async function generatePix(total, overlay){
       }catch(err){
         const txt = document.getElementById('pixStatusText');
         if(txt) txt.textContent = 'Erro temporário ao checar pagamento.';
+        try{ updateDebug(null); }catch(e){}
       }
     }, 3000);
 
