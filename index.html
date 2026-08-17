@@ -523,6 +523,8 @@ async function generatePix(total, overlay){
         if(!s.ok){
           const txt = document.getElementById('pixStatusText');
           if(txt) txt.textContent = 'Erro ao consultar status (ver logs).';
+          const debugEl = document.getElementById('pixDebug');
+          if(debugEl) debugEl.textContent = 'HTTP error: ' + s.status + ' ' + s.statusText + '\n' + new Date().toLocaleTimeString();
           return;
         }
 
@@ -542,6 +544,16 @@ async function generatePix(total, overlay){
         if(txt) txt.textContent = 'Erro temporário ao checar pagamento.';
       }
     }, 3000);
+
+    // Update debug element periodically (in case polling started)
+    const updateDebug = (sd) => {
+      const debugEl = document.getElementById('pixDebug');
+      if(debugEl){
+        try{
+          debugEl.textContent = 'paymentId: ' + paymentId + '\nlast status: ' + (sd && sd.status ? sd.status : 'null') + '\nchecked at: ' + new Date().toLocaleTimeString();
+        }catch(e){ debugEl.textContent = 'debug error'; }
+      }
+    };
   }catch(err){
     content.innerHTML = `
       <div class="pix-status" style="color:var(--red)">Não foi possível gerar o Pix real (${err.message}).<br>Isso é esperado se você estiver testando localmente (fora do Netlify) ou se o MP_ACCESS_TOKEN ainda não foi configurado nas variáveis de ambiente do site.</div>
